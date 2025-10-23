@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,12 +14,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -30,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Favorite
@@ -54,6 +58,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -147,12 +153,7 @@ fun HomeScreen() {
                     }
                 }
                 2 -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Buscar - Próximamente")
-                    }
+                    SearchScreen()
                 }
                 3 -> {
                     FavoritesScreen()
@@ -190,13 +191,13 @@ fun HeaderSection() {
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.fillMaxSize()
             ) {
-                Text(text = "🛋️", fontSize = 24.sp)
+                Text(text = "🛋", fontSize = 24.sp)
             }
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Bienvenido a Zynmuebles",
+                text = "Bienvenido a Zinmuebles",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -233,7 +234,7 @@ fun MainBanner() {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "🛋️🪴",
+                    text = "🛋🪴",
                     fontSize = 60.sp,
                     textAlign = TextAlign.Center
                 )
@@ -297,7 +298,7 @@ fun SuggestionsList() {
 @Composable
 fun FavoritesList() {
     val favorites = listOf(
-        FurnitureItem("Sofá Moderno", "💰 $890", "🛋️"),
+        FurnitureItem("Sofá Moderno", "💰 $890", "🛋"),
         FurnitureItem("Estante", "💰 $320", "📚"),
         FurnitureItem("Silla Ejecutiva", "💰 $450", "💺")
     )
@@ -478,6 +479,280 @@ data class FurnitureItem(
     val emoji: String
 )
 
+// ==================== PANTALLA DE BÚSQUEDA ====================
+
+@Composable
+fun SearchScreen() {
+    val primaryColor = Color(0xFFD87057)
+    val backgroundColor = Color(0xFFF5F5F5)
+
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedFilters by remember { mutableStateOf(setOf<String>()) }
+
+    val filterOptions = listOf("Precio", "Color", "Material", "Estilo")
+
+    val suggestedProducts = remember {
+        listOf(
+            Product("1", "Sofá beige minimalista", 1200000.0, "", "Sofá moderno", "sofas"),
+            Product("2", "Sofá Chesterfield gris oscuro", 2500000.0, "", "Sofá clásico", "sofas"),
+            Product("3", "Mesa Caramelo Minimalista", 850000.0, "", "Mesa moderna", "mesas")
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White,
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    color = primaryColor
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Text(text = "🛋", fontSize = 20.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Búsqueda",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                placeholder = {
+                    Text(
+                        "Búsqueda de muebles...",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = "Buscar",
+                        tint = Color.Gray
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                Icons.Default.Clear,
+                                contentDescription = "Limpiar",
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = primaryColor,
+                    unfocusedBorderColor = Color.LightGray,
+                    cursorColor = primaryColor,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                items(filterOptions) { filter ->
+                    FilterChip(
+                        filter = filter,
+                        isSelected = selectedFilters.contains(filter),
+                        onToggle = {
+                            selectedFilters = if (selectedFilters.contains(filter)) {
+                                selectedFilters - filter
+                            } else {
+                                selectedFilters + filter
+                            }
+                        }
+                    )
+                }
+            }
+
+            Text(
+                text = "Sugerencias",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(suggestedProducts) { product ->
+                    SearchProductCard(product = product)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FilterChip(
+    filter: String,
+    isSelected: Boolean,
+    onToggle: () -> Unit
+) {
+    val primaryColor = Color(0xFFD87057)
+
+    Surface(
+        onClick = onToggle,
+        shape = RoundedCornerShape(20.dp),
+        color = if (isSelected) primaryColor.copy(alpha = 0.2f) else Color.White,
+        border = if (isSelected) null else BorderStroke(1.dp, Color.LightGray),
+        modifier = Modifier.height(36.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = filter,
+                fontSize = 14.sp,
+                color = if (isSelected) primaryColor else Color.Gray,
+                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+            )
+            if (isSelected) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Surface(
+                    modifier = Modifier.size(16.dp),
+                    shape = CircleShape,
+                    color = primaryColor
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            Icons.Default.Clear,
+                            contentDescription = "Remover",
+                            tint = Color.White,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchProductCard(product: Product) {
+    val primaryColor = Color(0xFFD87057)
+
+    val priceFormatted = NumberFormat.getCurrencyInstance(Locale("es", "CO"))
+        .format(product.price)
+        .replace("COP", "")
+        .trim()
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .clickable { },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .size(96.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFFF0F0F0)
+            ) {
+                if (product.imageUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = product.imageUrl,
+                        contentDescription = product.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = when(product.category) {
+                                "sofas" -> "🛋"
+                                "sillas" -> "💺"
+                                "mesas" -> "⭕"
+                                else -> "🛋"
+                            },
+                            fontSize = 40.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = product.name,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "$${priceFormatted} COP",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryColor
+                )
+            }
+        }
+    }
+}
+
 // ==================== PANTALLA DE FAVORITOS ====================
 
 data class Product(
@@ -531,7 +806,7 @@ fun FavoritesScreen() {
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        Text(text = "🛋️", fontSize = 20.sp)
+                        Text(text = "🛋", fontSize = 20.sp)
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -610,11 +885,11 @@ fun FavoriteProductCard(product: Product) {
                         ) {
                             Text(
                                 text = when(product.category) {
-                                    "sofas" -> "🛋️"
+                                    "sofas" -> "🛋"
                                     "sillas" -> "💺"
                                     "mesas" -> "⭕"
-                                    "comedores" -> "🍽️"
-                                    else -> "🛋️"
+                                    "comedores" -> "🍽"
+                                    else -> "🛋"
                                 },
                                 fontSize = 48.sp
                             )
@@ -631,8 +906,7 @@ fun FavoriteProductCard(product: Product) {
                         text = product.name,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color.Black,
-                        maxLines = 1,
+                        color = Color.Black,maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -644,7 +918,6 @@ fun FavoriteProductCard(product: Product) {
                     )
                 }
             }
-
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -668,9 +941,7 @@ fun FavoriteProductCard(product: Product) {
         }
     }
 }
-
 // ==================== PANTALLA DE PERFIL ====================
-
 @Composable
 fun ProfileScreen(
     onNavigateToLogin: () -> Unit
@@ -680,7 +951,6 @@ fun ProfileScreen(
     val auth = Firebase.auth
     val primaryColor = Color(0xFFD87057)
     val backgroundColor = Color(0xFFF5F5F5)
-
     var currentUser by remember { mutableStateOf(auth.currentUser) }
     var profilePhotoUrl by remember { mutableStateOf(auth.currentUser?.photoUrl?.toString() ?: "") }
     var displayName by remember { mutableStateOf(auth.currentUser?.displayName ?: "Usuario") }
@@ -719,7 +989,7 @@ fun ProfileScreen(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        Text(text = "🛋️", fontSize = 20.sp)
+                        Text(text = "🛋", fontSize = 20.sp)
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -896,13 +1166,13 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
-
 @Composable
 fun ProfileMenuSection(
     title: String,
     subtitle: String,
     icon: ImageVector,
-    onClick: () -> Unit) {
+    onClick: () -> Unit
+) {
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
