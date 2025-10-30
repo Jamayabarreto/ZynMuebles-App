@@ -9,6 +9,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+// 🔥 IMPORTS AÑADIDOS
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +31,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign // 🔥 IMPORT AÑADIDO
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -36,6 +41,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
+
+// 🔥 AÑADIDA LA DATA CLASS (si no la tienes en otro archivo)
+data class CategoryItem(val name: String, val id: String)
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,6 +56,7 @@ class HomeActivity : ComponentActivity() {
     }
 }
 
+// 🔥 CAMBIOS EN HOMESCREEN (4 PESTAÑAS)
 @Composable
 fun HomeScreen() {
     var selectedTab by remember { mutableStateOf(0) }
@@ -56,21 +65,31 @@ fun HomeScreen() {
     Scaffold(
         bottomBar = {
             NavigationBar(containerColor = Color(0xFFD87057)) {
+                // Pestaña 0: Inicio
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     icon = { Icon(Icons.Default.Home, contentDescription = "Inicio") },
                     label = { Text("Inicio") }
                 )
+                // Pestaña 1: Categorías (NUEVA)
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    icon = { Icon(Icons.Default.Favorite, contentDescription = "Favoritos") },
-                    label = { Text("Favoritos") }
+                    icon = { Icon(Icons.Default.List, contentDescription = "Categorías") },
+                    label = { Text("Categorías") }
                 )
+                // Pestaña 2: Favoritos
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
+                    icon = { Icon(Icons.Default.Favorite, contentDescription = "Favoritos") },
+                    label = { Text("Favoritos") }
+                )
+                // Pestaña 3: Perfil
+                NavigationBarItem(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
                     icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
                     label = { Text("Perfil") }
                 )
@@ -78,10 +97,12 @@ fun HomeScreen() {
         }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
+            // 🔥 'when' actualizado para 4 pestañas
             when (selectedTab) {
                 0 -> MueblesScreen()
-                1 -> FavoritosScreen()
-                2 -> ProfileScreen(onNavigateToLogin = {
+                1 -> CategoriesScreen() // 🔥 PANTALLA AÑADIDA
+                2 -> FavoritosScreen()
+                3 -> ProfileScreen(onNavigateToLogin = {
                     val intent = Intent(context, MainActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     context.startActivity(intent)
@@ -96,12 +117,16 @@ fun MueblesScreen() {
     val db = FirebaseFirestore.getInstance()
     val muebles = remember { mutableStateListOf<Mueble>() }
 
-    // 🔥 Cargar los muebles en tiempo real
+    // Cargar los muebles en tiempo real
     LaunchedEffect(Unit) {
         db.collection("muebles").addSnapshotListener { snapshot, _ ->
             if (snapshot != null) {
+                // Mapeamos los documentos para obtener el ID
+                val newMueblesList = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Mueble::class.java)?.copy(id = doc.id)
+                }
                 muebles.clear()
-                muebles.addAll(snapshot.toObjects(Mueble::class.java))
+                muebles.addAll(newMueblesList)
             }
         }
     }
@@ -113,7 +138,7 @@ fun MueblesScreen() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(muebles) { mueble ->
+        items(muebles, key = { it.id }) { mueble ->
             MuebleCard(mueble)
         }
     }
@@ -145,17 +170,39 @@ fun FavoritosScreen() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(favoritos) { mueble ->
-            MuebleCard(mueble, esFavorito = true)
+        items(favoritos, key = { it.id }) { mueble ->
+            MuebleCard(mueble)
         }
     }
 }
 
 @Composable
-fun MuebleCard(mueble: Mueble, esFavorito: Boolean = false) {
+fun MuebleCard(mueble: Mueble) {
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
     val userId = auth.currentUser?.uid
+
+    val favRef = db.collection("favoritos")
+        .document(userId ?: "invalid")
+        .collection("muebles")
+
+    var isFavorite by remember { mutableStateOf(false) }
+    var favoriteDocId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(userId, mueble.id) {
+        if (userId != null) {
+            favRef.whereEqualTo("id", mueble.id)
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null && !snapshot.isEmpty) {
+                        isFavorite = true
+                        favoriteDocId = snapshot.documents.first().id
+                    } else {
+                        isFavorite = false
+                        favoriteDocId = null
+                    }
+                }
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -192,30 +239,19 @@ fun MuebleCard(mueble: Mueble, esFavorito: Boolean = false) {
                 )
             }
 
-            // 💖 Botón de favorito
             Icon(
-                imageVector = if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "Favorito",
                 tint = Color(0xFFD87057),
                 modifier = Modifier
                     .size(28.dp)
                     .clickable {
                         if (userId != null) {
-                            val favRef = db.collection("favoritos")
-                                .document(userId)
-                                .collection("muebles")
-
-                            if (esFavorito) {
-                                // Si ya está en favoritos → eliminar
-                                favRef.whereEqualTo("nombre", mueble.nombre)
-                                    .get()
-                                    .addOnSuccessListener { docs ->
-                                        for (doc in docs) {
-                                            favRef.document(doc.id).delete()
-                                        }
-                                    }
+                            if (isFavorite) {
+                                favoriteDocId?.let { favId ->
+                                    favRef.document(favId).delete()
+                                }
                             } else {
-                                // Si no está → agregar
                                 favRef.add(mueble)
                             }
                         }
@@ -496,6 +532,156 @@ fun ProfileMenuSection(
                 tint = Color.Gray,
                 modifier = Modifier.size(24.dp)
             )
+        }
+    }
+}
+
+// ==================================================
+// 🔥 CÓDIGO DE CATEGORÍAS AÑADIDO AL FINAL DEL ARCHIVO
+// ==================================================
+
+@Composable
+fun CategoriesScreen() {
+    val context = LocalContext.current
+    val primaryColor = Color(0xFFD87057)
+    val backgroundColor = Color(0xFFF5F5F5)
+
+    val categories = listOf(
+        CategoryItem("Sofás", "sofas"),
+        CategoryItem("Mesas", "mesas"),
+        CategoryItem("Sillas", "sillas"),
+        CategoryItem("Camas", "camas"),
+        CategoryItem("Decoración", "decoracion"),
+        CategoryItem("Otros", "otros")
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+    ) {
+        // Header
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White,
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    color = primaryColor
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Text(text = "🛋️", fontSize = 20.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Categorías",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = "Puedes ver nuestras categorías aquí:",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Grid de categorías
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(categories) { category ->
+                CategoryCard(
+                    category = category,
+                    onClick = {
+                        val intent = Intent(context, CategoryProductsActivity::class.java)
+                        intent.putExtra("CATEGORY_ID", category.id)
+                        intent.putExtra("CATEGORY_NAME", category.name)
+                        context.startActivity(intent)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CategoryCard(
+    category: CategoryItem,
+    onClick: () -> Unit
+) {
+    val primaryColor = Color(0xFFD87057)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    color = primaryColor.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(16.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(60.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = primaryColor.copy(alpha = 0.1f)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu, // Puedes cambiar este ícono
+                            contentDescription = category.name,
+                            tint = primaryColor,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = category.name,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

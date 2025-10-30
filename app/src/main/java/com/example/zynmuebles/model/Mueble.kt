@@ -5,5 +5,6 @@ data class Mueble(
     val nombre: String = "",
     val descripcion: String = "",
     val precio: Double = 0.0,
-    val imageUrl: String = ""
+    val imageUrl: String = "" ,
+    val categoria: String = ""
 )
