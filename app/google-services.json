@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "507828216247",
+    "firebase_url": "https://zynmuebles-fc25c-default-rtdb.firebaseio.com",
+    "project_id": "zynmuebles-fc25c",
+    "storage_bucket": "zynmuebles-fc25c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:507828216247:android:aa96f3bf2b6c184c3fc832",
+        "android_client_info": {
+          "package_name": "com.example.zynmuebles"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKn7_s9jUIrLBt5ISnOpmwQw2QqRLSqeg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

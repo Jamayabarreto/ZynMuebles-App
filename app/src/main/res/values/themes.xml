@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+    Tema base de la aplicación.
+    Hereda de un tema sin ActionBar para dejar que Compose controle toda la UI.
+    Este tema se aplica a nivel de sistema (ej. barra de estado, pantalla de carga)
+    antes de que el contenido de Compose se muestre.
+    -->
+    <style name="Theme.ZynMuebles" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Opcional: Puedes definir un color para la barra de estado aquí si quieres
+             que tenga un color específico mientras la app se inicia. -->
+        <!-- <item name="android:statusBarColor">@color/algun_color</item> -->
+    </style>
+
+</resources>

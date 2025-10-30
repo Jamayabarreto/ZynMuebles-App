@@ -1,0 +1,31 @@
+<resources>
+    <!-- General -->
+    <string name="app_name">ZynMuebles</string>
+    <string name="crear_cuenta">CREAR CUENTA</string>
+
+    <!-- Pantalla de Login -->
+    <string name="bienvenido">BIENVENIDO A ZINMUEBLES</string>
+    <string name="ingresa_cuenta">INGRESA A TU CUENTA</string>
+    <string name="iniciar_sesion">INICIAR SESIÓN</string>
+    <string name="olvidaste_pass">¿Olvidaste tu contraseña?</string>
+    <string name="email_label">Email</string>
+    <string name="password_label">Contraseña</string>
+
+    <!-- Pantalla de Registro -->
+    <string name="register_title">Crear Cuenta</string>
+    <string name="name_label">Nombre</string>
+    <string name="lastname_label">Apellido</string>
+    <string name="confirm_password_label">Confirmar Contraseña</string>
+    <string name="register_button">Registrarme</string>
+    <string name="password_length_hint">Contraseña (mín. 10 caracteres)</string>
+
+    <!-- Mensajes / Toasts -->
+    <string name="error_empty_fields">Por favor, completa todos los campos.</string>
+    <string name="error_password_mismatch">Las contraseñas no coinciden.</string>
+    <string name="error_password_length">La contraseña debe tener al menos 10 caracteres.</string>
+    <string name="register_success">¡Registro exitoso! Ya puedes iniciar sesión.</string>
+    <string name="login_success">¡Sesión iniciada con éxito!</string>
+    <string name="error_invalid_email">Email inválido</string>
+    <string name="error_user_not_found">Usuario no encontrado</string>
+    <string name="error_invalid_credentials">Contraseña incorrecta</string>
+</resources>
