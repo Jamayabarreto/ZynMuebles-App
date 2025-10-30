@@ -9,7 +9,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-// 🔥 IMPORTS AÑADIDOS
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -31,7 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign // 🔥 IMPORT AÑADIDO
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -41,9 +40,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
-
-// 🔥 AÑADIDA LA DATA CLASS (si no la tienes en otro archivo)
-data class CategoryItem(val name: String, val id: String)
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,7 +52,6 @@ class HomeActivity : ComponentActivity() {
     }
 }
 
-// 🔥 CAMBIOS EN HOMESCREEN (4 PESTAÑAS)
 @Composable
 fun HomeScreen() {
     var selectedTab by remember { mutableStateOf(0) }
@@ -65,28 +60,24 @@ fun HomeScreen() {
     Scaffold(
         bottomBar = {
             NavigationBar(containerColor = Color(0xFFD87057)) {
-                // Pestaña 0: Inicio
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     icon = { Icon(Icons.Default.Home, contentDescription = "Inicio") },
                     label = { Text("Inicio") }
                 )
-                // Pestaña 1: Categorías (NUEVA)
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     icon = { Icon(Icons.Default.List, contentDescription = "Categorías") },
                     label = { Text("Categorías") }
                 )
-                // Pestaña 2: Favoritos
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     icon = { Icon(Icons.Default.Favorite, contentDescription = "Favoritos") },
                     label = { Text("Favoritos") }
                 )
-                // Pestaña 3: Perfil
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
@@ -97,10 +88,9 @@ fun HomeScreen() {
         }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
-            // 🔥 'when' actualizado para 4 pestañas
             when (selectedTab) {
                 0 -> MueblesScreen()
-                1 -> CategoriesScreen() // 🔥 PANTALLA AÑADIDA
+                1 -> CategoriesScreen()
                 2 -> FavoritosScreen()
                 3 -> ProfileScreen(onNavigateToLogin = {
                     val intent = Intent(context, MainActivity::class.java)
@@ -117,11 +107,9 @@ fun MueblesScreen() {
     val db = FirebaseFirestore.getInstance()
     val muebles = remember { mutableStateListOf<Mueble>() }
 
-    // Cargar los muebles en tiempo real
     LaunchedEffect(Unit) {
         db.collection("muebles").addSnapshotListener { snapshot, _ ->
             if (snapshot != null) {
-                // Mapeamos los documentos para obtener el ID
                 val newMueblesList = snapshot.documents.mapNotNull { doc ->
                     doc.toObject(Mueble::class.java)?.copy(id = doc.id)
                 }
@@ -260,8 +248,6 @@ fun MuebleCard(mueble: Mueble) {
         }
     }
 }
-
-// ==================== PANTALLA DE PERFIL ====================
 
 @Composable
 fun ProfileScreen(onNavigateToLogin: () -> Unit) {
@@ -537,8 +523,15 @@ fun ProfileMenuSection(
 }
 
 // ==================================================
-// 🔥 CÓDIGO DE CATEGORÍAS AÑADIDO AL FINAL DEL ARCHIVO
+// 🔥 PANTALLA DE CATEGORÍAS CON IMÁGENES FIJAS
 // ==================================================
+
+// 🔥 Data class actualizada con imageUrl
+data class CategoryItem(
+    val name: String,
+    val id: String,
+    val imageUrl: String = ""
+)
 
 @Composable
 fun CategoriesScreen() {
@@ -546,13 +539,38 @@ fun CategoriesScreen() {
     val primaryColor = Color(0xFFD87057)
     val backgroundColor = Color(0xFFF5F5F5)
 
+    // 🔥 Categorías con URLs de imágenes fijas
     val categories = listOf(
-        CategoryItem("Sofás", "sofas"),
-        CategoryItem("Mesas", "mesas"),
-        CategoryItem("Sillas", "sillas"),
-        CategoryItem("Camas", "camas"),
-        CategoryItem("Decoración", "decoracion"),
-        CategoryItem("Otros", "otros")
+        CategoryItem(
+            "Sofás",
+            "sofas",
+            "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80"
+        ),
+        CategoryItem(
+            "Mesas",
+            "mesas",
+            "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800&q=80"
+        ),
+        CategoryItem(
+            "Sillas",
+            "sillas",
+            "https://images.unsplash.com/photo-1503602642458-232111445657?w=800&q=80"
+        ),
+        CategoryItem(
+            "Camas",
+            "camas",
+            "https://images.unsplash.com/photo-1505693314120-0d443867891c?w=800&q=80"
+        ),
+        CategoryItem(
+            "Decoración",
+            "decoracion",
+            "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&q=80"
+        ),
+        CategoryItem(
+            "Otros",
+            "otros",
+            "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=800&q=80"
+        )
     )
 
     Column(
@@ -581,7 +599,7 @@ fun CategoriesScreen() {
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        Text(text = "🛋️", fontSize = 20.sp)
+                        Text(text = "🛋", fontSize = 20.sp)
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -636,51 +654,64 @@ fun CategoryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp)
+            .height(180.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    color = primaryColor.copy(alpha = 0.05f),
-                    shape = RoundedCornerShape(16.dp)
-                ),
-            contentAlignment = Alignment.Center
+            modifier = Modifier.fillMaxSize()
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(16.dp)
+            // 🔥 Imagen de fondo
+            if (category.imageUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = category.imageUrl,
+                    contentDescription = category.name,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.8f
+                )
+                // Overlay oscuro para legibilidad
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.35f))
+                )
+            } else {
+                // Fallback: color de fondo
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = primaryColor.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                )
+            }
+
+            // 🔥 Texto sobre la imagen
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Surface(
-                    modifier = Modifier.size(60.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = primaryColor.copy(alpha = 0.1f)
+                    color = Color.White.copy(alpha = 0.95f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu, // Puedes cambiar este ícono
-                            contentDescription = category.name,
-                            tint = primaryColor,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
+                    Text(
+                        text = category.name,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = category.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center
-                )
             }
         }
     }
