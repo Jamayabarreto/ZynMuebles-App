@@ -480,17 +480,8 @@ fun ProfileScreen(onNavigateToLogin: () -> Unit) {
             subtitle = "Información de los documentos de identidad y propietario",
             icon = Icons.Default.Person,
             onClick = {
-                Toast.makeText(context, "Próximamente disponible", Toast.LENGTH_SHORT).show()
-            }
-        )
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-        ProfileMenuSection(
-            title = "DATOS DE PAGO Y HERRAMIENTA",
-            subtitle = "Agrega un método seguro de tus pagos",
-            icon = Icons.Default.AccountCircle,
-            onClick = {
-                Toast.makeText(context, "Próximamente disponible", Toast.LENGTH_SHORT).show()
+                val intent = Intent(context, PersonalInfoActivity::class.java)
+                context.startActivity(intent)
             }
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -511,7 +502,8 @@ fun ProfileScreen(onNavigateToLogin: () -> Unit) {
             subtitle = "Tarjeta guardadas en la cuenta",
             icon = Icons.Default.Star,
             onClick = {
-                Toast.makeText(context, "Próximamente disponible", Toast.LENGTH_SHORT).show()
+                val intent = Intent(context, CardsActivity::class.java)
+                context.startActivity(intent)
             }
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -521,7 +513,8 @@ fun ProfileScreen(onNavigateToLogin: () -> Unit) {
             subtitle = "Direcciones guardadas en tu cuenta",
             icon = Icons.Default.LocationOn,
             onClick = {
-                Toast.makeText(context, "Próximamente disponible", Toast.LENGTH_SHORT).show()
+                val intent = Intent(context, AddressesActivity::class.java)
+                context.startActivity(intent)
             }
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -531,7 +524,8 @@ fun ProfileScreen(onNavigateToLogin: () -> Unit) {
             subtitle = "Configurar el control sobre el uso de tus datos",
             icon = Icons.Default.Settings,
             onClick = {
-                Toast.makeText(context, "Próximamente disponible", Toast.LENGTH_SHORT).show()
+                val intent = Intent(context, PrivacyActivity::class.java)
+                context.startActivity(intent)
             }
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -541,7 +535,8 @@ fun ProfileScreen(onNavigateToLogin: () -> Unit) {
             subtitle = "Elige que tipo de noticias quieres recibir",
             icon = Icons.Default.Notifications,
             onClick = {
-                Toast.makeText(context, "Próximamente disponible", Toast.LENGTH_SHORT).show()
+                val intent = Intent(context, CommunicationsActivity::class.java)
+                context.startActivity(intent)
             }
         )
 
