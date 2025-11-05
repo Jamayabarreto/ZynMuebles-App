@@ -40,6 +40,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
+import androidx.compose.ui.window.Dialog
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,6 +57,21 @@ class HomeActivity : ComponentActivity() {
 fun HomeScreen() {
     var selectedTab by remember { mutableStateOf(0) }
     val context = LocalContext.current
+    val auth = Firebase.auth
+    val db = FirebaseFirestore.getInstance()
+
+    // Estado para verificar si el usuario es admin
+    var isAdmin by remember { mutableStateOf(false) }
+
+    // Verificar rol del usuario
+    LaunchedEffect(auth.currentUser?.uid) {
+        auth.currentUser?.uid?.let { userId ->
+            db.collection("usuarios").document(userId).get()
+                .addOnSuccessListener { document ->
+                    isAdmin = document.getString("rol") == "admin"
+                }
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -72,15 +88,42 @@ fun HomeScreen() {
                     icon = { Icon(Icons.Default.List, contentDescription = "Categorías") },
                     label = { Text("Categorías") }
                 )
+
+                // Botón central "+" solo para admins
+                if (isAdmin) {
+                    NavigationBarItem(
+                        selected = selectedTab == 2,
+                        onClick = {
+                            val intent = Intent(context, AddMuebleActivity::class.java)
+                            context.startActivity(intent)
+                        },
+                        icon = {
+                            Surface(
+                                modifier = Modifier.size(40.dp),
+                                shape = CircleShape,
+                                color = Color.White
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Agregar",
+                                    tint = Color(0xFFD87057),
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        },
+                        label = { Text("Agregar") }
+                    )
+                }
+
                 NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
                     icon = { Icon(Icons.Default.Favorite, contentDescription = "Favoritos") },
                     label = { Text("Favoritos") }
                 )
                 NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 },
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
                     icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
                     label = { Text("Perfil") }
                 )
@@ -91,8 +134,8 @@ fun HomeScreen() {
             when (selectedTab) {
                 0 -> MueblesScreen()
                 1 -> CategoriesScreen()
-                2 -> FavoritosScreen()
-                3 -> ProfileScreen(onNavigateToLogin = {
+                3 -> FavoritosScreen()
+                4 -> ProfileScreen(onNavigateToLogin = {
                     val intent = Intent(context, MainActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     context.startActivity(intent)
@@ -145,7 +188,6 @@ fun FavoritosScreen() {
                 .addSnapshotListener { snapshot, _ ->
                     if (snapshot != null) {
                         val newFavoritosList = snapshot.documents.mapNotNull { doc ->
-                            // Manually map the document ID to the 'id' field
                             doc.toObject(Mueble::class.java)?.copy(id = doc.id)
                         }
                         favoritos.clear()
@@ -174,6 +216,7 @@ fun MuebleCard(mueble: Mueble) {
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
     val userId = auth.currentUser?.uid
+    val context = LocalContext.current
 
     val favRef = db.collection("favoritos")
         .document(userId ?: "invalid")
@@ -181,6 +224,18 @@ fun MuebleCard(mueble: Mueble) {
 
     var isFavorite by remember { mutableStateOf(false) }
     var favoriteDocId by remember { mutableStateOf<String?>(null) }
+    var isAdmin by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Verificar si es admin
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            db.collection("usuarios").document(userId).get()
+                .addOnSuccessListener { document ->
+                    isAdmin = document.getString("rol") == "admin"
+                }
+        }
+    }
 
     LaunchedEffect(userId, mueble.id) {
         if (userId != null) {
@@ -195,6 +250,37 @@ fun MuebleCard(mueble: Mueble) {
                     }
                 }
         }
+    }
+
+    // Diálogo de confirmación para eliminar
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar mueble") },
+            text = { Text("¿Estás seguro de que deseas eliminar '${mueble.nombre}'? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // Eliminar de Firestore
+                        db.collection("muebles").document(mueble.id).delete()
+                            .addOnSuccessListener {
+                                Toast.makeText(context, "Mueble eliminado", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Eliminar", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     Card(
@@ -226,12 +312,13 @@ fun MuebleCard(mueble: Mueble) {
                 Text(text = mueble.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text(text = mueble.descripcion, fontSize = 13.sp, color = Color.Gray)
                 Text(
-                    text = "$${mueble.precio}",
+                    text = "${mueble.precio}",
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFFD87057)
                 )
             }
 
+            // Botón de favoritos
             Icon(
                 imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "Favorito",
@@ -250,6 +337,19 @@ fun MuebleCard(mueble: Mueble) {
                         }
                     }
             )
+
+            // Botón de eliminar (solo para admins)
+            if (isAdmin) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Eliminar",
+                    tint = Color.Red,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clickable { showDeleteDialog = true }
+                )
+            }
         }
     }
 }
@@ -527,11 +627,6 @@ fun ProfileMenuSection(
     }
 }
 
-// ==================================================
-// 🔥 PANTALLA DE CATEGORÍAS CON IMÁGENES FIJAS
-// ==================================================
-
-// 🔥 Data class actualizada con imageUrl
 data class CategoryItem(
     val name: String,
     val id: String,
@@ -544,7 +639,6 @@ fun CategoriesScreen() {
     val primaryColor = Color(0xFFD87057)
     val backgroundColor = Color(0xFFF5F5F5)
 
-    // 🔥 Categorías con URLs de imágenes fijas
     val categories = listOf(
         CategoryItem(
             "Sofás",
@@ -583,7 +677,6 @@ fun CategoriesScreen() {
             .fillMaxSize()
             .background(backgroundColor)
     ) {
-        // Header
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,
@@ -626,7 +719,6 @@ fun CategoriesScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Grid de categorías
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(16.dp),
@@ -668,7 +760,6 @@ fun CategoryCard(
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            // 🔥 Imagen de fondo
             if (category.imageUrl.isNotEmpty()) {
                 AsyncImage(
                     model = category.imageUrl,
@@ -679,14 +770,12 @@ fun CategoryCard(
                     contentScale = ContentScale.Crop,
                     alpha = 0.8f
                 )
-                // Overlay oscuro para legibilidad
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.35f))
                 )
             } else {
-                // Fallback: color de fondo
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -697,7 +786,6 @@ fun CategoryCard(
                 )
             }
 
-            // 🔥 Texto sobre la imagen
             Box(
                 modifier = Modifier
                     .fillMaxSize()

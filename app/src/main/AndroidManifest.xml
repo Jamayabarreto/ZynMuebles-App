@@ -47,11 +47,17 @@
             android:name=".EditProfileActivity"
             android:exported="false"
             android:theme="@style/Theme.ZynMuebles" />
+
         <activity
             android:name=".SecurityActivity"
             android:exported="false"
             android:theme="@style/Theme.ZynMuebles" />
 
+        <!-- Nueva actividad para agregar muebles -->
+        <activity
+            android:name=".AddMuebleActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ZynMuebles" />
 
     </application>
 

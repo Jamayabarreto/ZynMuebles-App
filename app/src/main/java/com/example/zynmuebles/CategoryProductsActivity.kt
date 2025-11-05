@@ -1,6 +1,7 @@
 package com.example.zynmuebles
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -12,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
@@ -20,14 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-// 🔥 IMPORTACIONES AÑADIDAS
-import com.example.zynmuebles.model.Mueble // Asegúrate que esta es la ruta correcta
+import com.example.zynmuebles.model.Mueble
 import com.example.zynmuebles.ui.theme.ZynMueblesTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -61,15 +63,25 @@ fun CategoryProductsScreen(
     onBackPressed: () -> Unit
 ) {
     val backgroundColor = Color(0xFFF5F5F5)
-
-    // 🔥 OBTENER PRODUCTOS DE FIREBASE
     val db = FirebaseFirestore.getInstance()
-    val products = remember { mutableStateListOf<Mueble>() } // Usamos la clase Mueble
+    val auth = FirebaseAuth.getInstance()
+    val products = remember { mutableStateListOf<Mueble>() }
+    var isAdmin by remember { mutableStateOf(false) }
+
+    // Verificar si es admin
+    LaunchedEffect(auth.currentUser?.uid) {
+        auth.currentUser?.uid?.let { userId ->
+            db.collection("usuarios").document(userId).get()
+                .addOnSuccessListener { document ->
+                    isAdmin = document.getString("rol") == "admin"
+                }
+        }
+    }
 
     LaunchedEffect(categoryId) {
         if (categoryId.isNotEmpty()) {
             db.collection("muebles")
-                .whereEqualTo("categoria", categoryId) // Filtramos por la categoría
+                .whereEqualTo("categoria", categoryId)
                 .addSnapshotListener { snapshot, _ ->
                     if (snapshot != null) {
                         products.clear()
@@ -91,7 +103,7 @@ fun CategoryProductsScreen(
                             color = Color.Black
                         )
                         Text(
-                            text = "${products.size} productos disponibles", // Se actualiza en tiempo real
+                            text = "${products.size} productos disponibles",
                             fontSize = 12.sp,
                             color = Color.Gray
                         )
@@ -128,7 +140,7 @@ fun CategoryProductsScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "🛋️",
+                            text = "🛋",
                             fontSize = 60.sp
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -148,9 +160,8 @@ fun CategoryProductsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // 🔥 Actualizado para usar Mueble
                     items(products) { mueble ->
-                        CategoryProductCard(mueble = mueble)
+                        CategoryProductCard(mueble = mueble, isAdmin = isAdmin)
                     }
                 }
             }
@@ -159,19 +170,20 @@ fun CategoryProductsScreen(
 }
 
 @Composable
-fun CategoryProductCard(mueble: Mueble) { // 🔥 Recibe un objeto Mueble
+fun CategoryProductCard(mueble: Mueble, isAdmin: Boolean) {
     val db = FirebaseFirestore.getInstance()
     val auth = FirebaseAuth.getInstance()
     val userId = auth.currentUser?.uid
     val primaryColor = Color(0xFFD87057)
+    val context = LocalContext.current
 
-    // 🔥 Lógica para saber si es favorito (igual que en HomeActivity)
     var isFavorite by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(userId, mueble.nombre) {
         if (userId != null) {
             db.collection("favoritos").document(userId).collection("muebles")
-                .whereEqualTo("nombre", mueble.nombre) // Asumimos que "nombre" es único
+                .whereEqualTo("nombre", mueble.nombre)
                 .addSnapshotListener { snapshot, _ ->
                     isFavorite = snapshot != null && !snapshot.isEmpty
                 }
@@ -179,14 +191,51 @@ fun CategoryProductCard(mueble: Mueble) { // 🔥 Recibe un objeto Mueble
     }
 
     val priceFormatted = NumberFormat.getCurrencyInstance(Locale("es", "CO"))
-        .format(mueble.precio) // Usamos mueble.precio
+        .format(mueble.precio)
         .replace("COP", "$")
         .replace(",00", "")
+
+    // Diálogo de confirmación para eliminar
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar mueble") },
+            text = { Text("¿Estás seguro de que deseas eliminar '${mueble.nombre}'? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        db.collection("muebles")
+                            .whereEqualTo("nombre", mueble.nombre)
+                            .get()
+                            .addOnSuccessListener { documents ->
+                                for (doc in documents) {
+                                    db.collection("muebles").document(doc.id).delete()
+                                        .addOnSuccessListener {
+                                            Toast.makeText(context, "Mueble eliminado", Toast.LENGTH_SHORT).show()
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                }
+                            }
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Eliminar", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(220.dp)
+            .height(if (isAdmin) 240.dp else 220.dp)
             .clickable { },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -207,8 +256,8 @@ fun CategoryProductCard(mueble: Mueble) { // 🔥 Recibe un objeto Mueble
                 ) {
                     if (mueble.imageUrl.isNotEmpty()) {
                         AsyncImage(
-                            model = mueble.imageUrl, // Usamos mueble.imageUrl
-                            contentDescription = mueble.nombre, // Usamos mueble.nombre
+                            model = mueble.imageUrl,
+                            contentDescription = mueble.nombre,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
@@ -218,12 +267,12 @@ fun CategoryProductCard(mueble: Mueble) { // 🔥 Recibe un objeto Mueble
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = when (mueble.categoria) { // Usamos mueble.categoria
-                                    "sofas" -> "🛋️"
+                                text = when (mueble.categoria) {
+                                    "sofas" -> "🛋"
                                     "sillas" -> "🪑"
-                                    "mesas" -> "TABLE" // Emoji de mesa no existe
-                                    "camas" -> "🛏️"
-                                    "decoracion" -> "🖼️"
+                                    "mesas" -> "🪵"
+                                    "camas" -> "🛏"
+                                    "decoracion" -> "🖼"
                                     else -> "📦"
                                 },
                                 fontSize = 48.sp
@@ -238,7 +287,7 @@ fun CategoryProductCard(mueble: Mueble) { // 🔥 Recibe un objeto Mueble
                         .padding(12.dp)
                 ) {
                     Text(
-                        text = mueble.nombre, // Usamos mueble.nombre
+                        text = mueble.nombre,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.Black,
@@ -252,8 +301,39 @@ fun CategoryProductCard(mueble: Mueble) { // 🔥 Recibe un objeto Mueble
                         fontWeight = FontWeight.Bold,
                         color = primaryColor
                     )
+
+                    // Botón de eliminar (solo para admins)
+                    if (isAdmin) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { showDeleteDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(32.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Red.copy(alpha = 0.1f)
+                            ),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Eliminar",
+                                tint = Color.Red,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Eliminar",
+                                color = Color.Red,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
+
+            // Botón de favoritos
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -264,14 +344,12 @@ fun CategoryProductCard(mueble: Mueble) { // 🔥 Recibe un objeto Mueble
             ) {
                 IconButton(
                     onClick = {
-                        // 🔥 Lógica de favoritos conectada a Firebase
                         if (userId != null) {
                             val favRef = db.collection("favoritos")
                                 .document(userId)
                                 .collection("muebles")
 
                             if (isFavorite) {
-                                // Si ya es favorito -> eliminar
                                 favRef.whereEqualTo("nombre", mueble.nombre)
                                     .get()
                                     .addOnSuccessListener { docs ->
@@ -280,7 +358,6 @@ fun CategoryProductCard(mueble: Mueble) { // 🔥 Recibe un objeto Mueble
                                         }
                                     }
                             } else {
-                                // Si no es favorito -> agregar
                                 favRef.add(mueble)
                             }
                         }
@@ -290,7 +367,7 @@ fun CategoryProductCard(mueble: Mueble) { // 🔥 Recibe un objeto Mueble
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Favorito",
-                        tint = if (isFavorite) Color.Red else Color.Gray, // Rojo si es favorito
+                        tint = if (isFavorite) Color.Red else Color.Gray,
                         modifier = Modifier.size(20.dp)
                     )
                 }
