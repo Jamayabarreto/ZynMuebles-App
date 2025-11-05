@@ -144,8 +144,12 @@ fun FavoritosScreen() {
             db.collection("favoritos").document(userId).collection("muebles")
                 .addSnapshotListener { snapshot, _ ->
                     if (snapshot != null) {
+                        val newFavoritosList = snapshot.documents.mapNotNull { doc ->
+                            // Manually map the document ID to the 'id' field
+                            doc.toObject(Mueble::class.java)?.copy(id = doc.id)
+                        }
                         favoritos.clear()
-                        favoritos.addAll(snapshot.toObjects(Mueble::class.java))
+                        favoritos.addAll(newFavoritosList)
                     }
                 }
         }
@@ -163,6 +167,7 @@ fun FavoritosScreen() {
         }
     }
 }
+
 
 @Composable
 fun MuebleCard(mueble: Mueble) {

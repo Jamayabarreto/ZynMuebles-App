@@ -23,14 +23,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.zynmuebles.model.User
 import com.example.zynmuebles.ui.theme.ZynMueblesTheme
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
 class RegisterActivity : ComponentActivity() {
@@ -47,7 +48,7 @@ class RegisterActivity : ComponentActivity() {
                         onRegisterSuccess = {
                             Toast.makeText(
                                 this,
-                                getString(R.string.register_success),
+                                "¡Registro exitoso! Ya puedes iniciar sesión.",
                                 Toast.LENGTH_LONG
                             ).show()
                             finish()
@@ -62,7 +63,6 @@ class RegisterActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
@@ -79,11 +79,10 @@ fun RegisterScreen(
 
     val context = LocalContext.current
     val auth = Firebase.auth
+    val db = Firebase.firestore
     val scrollState = rememberScrollState()
 
-    // Colores
     val primaryColor = Color(0xFFD87057)
-    val lightGray = Color(0xFFF5F5F5)
     val darkGray = Color(0xFF666666)
 
     Column(
@@ -94,7 +93,6 @@ fun RegisterScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Botón de retroceso (esquina superior izquierda)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start
@@ -123,10 +121,8 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Logo del sillón
         Surface(
-            modifier = Modifier
-                .size(80.dp),
+            modifier = Modifier.size(80.dp),
             shape = RoundedCornerShape(16.dp),
             color = primaryColor
         ) {
@@ -134,16 +130,12 @@ fun RegisterScreen(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.fillMaxSize()
             ) {
-                Text(
-                    text = "🛋️",
-                    fontSize = 40.sp
-                )
+                Text(text = "🛋", fontSize = 40.sp)
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Título "CREA TU CUENTA"
         Text(
             text = "CREA TU CUENTA",
             fontSize = 20.sp,
@@ -283,7 +275,7 @@ fun RegisterScreen(
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Text(
-                        text = if (passwordVisible) "👁️" else "👁️‍🗨️",
+                        text = if (passwordVisible) "👁" else "👁‍🗨",
                         fontSize = 20.sp
                     )
                 }
@@ -317,7 +309,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            placeholder = { Text("Ingrese su correo electrónico", color = Color.LightGray) },
+            placeholder = { Text("Confirma tu nueva contraseña", color = Color.LightGray) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Lock,
@@ -328,7 +320,7 @@ fun RegisterScreen(
             trailingIcon = {
                 IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                     Text(
-                        text = if (confirmPasswordVisible) "👁️" else "👁️‍🗨️",
+                        text = if (confirmPasswordVisible) "👁" else "👁‍🗨",
                         fontSize = 20.sp
                     )
                 }
@@ -349,7 +341,7 @@ fun RegisterScreen(
             shape = RoundedCornerShape(8.dp)
         )
 
-        // Botón de registrarse (círculo con flecha)
+        // Botón de registrarse
         FloatingActionButton(
             onClick = {
                 when {
@@ -384,12 +376,70 @@ fun RegisterScreen(
                     }
                     else -> {
                         isLoading = true
+
+                        // Registrar en Firebase Auth
                         auth.createUserWithEmailAndPassword(email, password)
                             .addOnCompleteListener { task ->
-                                isLoading = false
                                 if (task.isSuccessful) {
-                                    onRegisterSuccess()
+                                    val userId = auth.currentUser?.uid
+
+                                    if (userId != null) {
+                                        // Verificar si es el primer usuario
+                                        db.collection("usuarios")
+                                            .get()
+                                            .addOnSuccessListener { snapshot ->
+                                                val rol = if (snapshot.isEmpty) "admin" else "cliente"
+
+                                                // Crear objeto usuario
+                                                val user = hashMapOf(
+                                                    "uid" to userId,
+                                                    "nombre" to "$nombre $apellido",
+                                                    "email" to email,
+                                                    "rol" to rol,
+                                                    "fechaCreacion" to System.currentTimeMillis()
+                                                )
+
+                                                // Guardar en Firestore
+                                                db.collection("usuarios")
+                                                    .document(userId)
+                                                    .set(user)
+                                                    .addOnSuccessListener {
+                                                        isLoading = false
+                                                        val mensaje = if (rol == "admin") {
+                                                            "¡Cuenta de administrador creada!"
+                                                        } else {
+                                                            "¡Cuenta creada exitosamente!"
+                                                        }
+                                                        Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()
+                                                        onRegisterSuccess()
+                                                    }
+                                                    .addOnFailureListener { e ->
+                                                        isLoading = false
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Error al guardar usuario: ${e.message}",
+                                                            Toast.LENGTH_LONG
+                                                        ).show()
+                                                    }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                isLoading = false
+                                                Toast.makeText(
+                                                    context,
+                                                    "Error al verificar usuarios: ${e.message}",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+                                    } else {
+                                        isLoading = false
+                                        Toast.makeText(
+                                            context,
+                                            "Error: No se pudo obtener el ID del usuario",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
                                 } else {
+                                    isLoading = false
                                     Toast.makeText(
                                         context,
                                         "Error al registrar: ${task.exception?.localizedMessage}",
