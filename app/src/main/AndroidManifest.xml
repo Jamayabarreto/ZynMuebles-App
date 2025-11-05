@@ -59,6 +59,13 @@
             android:exported="false"
             android:theme="@style/Theme.ZynMuebles" />
 
+
+        <activity android:name=".PersonalInfoActivity" android:exported="false" />
+        <activity android:name=".CardsActivity" android:exported="false" />
+        <activity android:name=".AddressesActivity" android:exported="false" />
+        <activity android:name=".PrivacyActivity" android:exported="false" />
+        <activity android:name=".CommunicationsActivity" android:exported="false" />
+
     </application>
 
 </manifest>
