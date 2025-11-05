@@ -13,7 +13,20 @@
           "package_name": "com.example.zynmuebles"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "507828216247-1lu7hdmo33m1tgoprd60frahgp7rh83u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.zynmuebles",
+            "certificate_hash": "c7873cd65b538ea95dc96cd4ba942e05325d889d"
+          }
+        },
+        {
+          "client_id": "507828216247-0v9ubd1r81oh0eri49660nfimoekr9vk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBKn7_s9jUIrLBt5ISnOpmwQw2QqRLSqeg"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "507828216247-0v9ubd1r81oh0eri49660nfimoekr9vk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

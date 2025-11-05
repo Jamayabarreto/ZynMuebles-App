@@ -1,4 +1,3 @@
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -41,7 +40,6 @@ android {
         jvmTarget = "11"
     }
 }
-// EN app/build.gradle.kts, REEMPLAZA TU BLOQUE DE DEPENDENCIAS POR ESTE:
 
 dependencies {
     // --- LIBRERÍAS ESENCIALES DE ANDROIDX Y COMPOSE ---
@@ -54,14 +52,17 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3) // ¡Esencial para Material Design 3!
+    implementation(libs.androidx.material3)
 
     // --- LIBRERÍAS DE FIREBASE ---
-    // BOM de Firebase: Gestiona la compatibilidad de las librerías de Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+
+    // --- GOOGLE SIGN-IN ---
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     // --- DEPENDENCIAS PARA TESTING ---
     testImplementation(libs.junit)
@@ -72,15 +73,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-        // ... tus dependencias existentes ...
-
-        // Coil para cargar imágenes
-        implementation("io.coil-kt:coil-compose:2.5.0")
-
-        // Firebase Storage para subir fotos de perfil
-        implementation("com.google.firebase:firebase-storage-ktx")
-
+    // Coil para cargar imágenes
+    implementation("io.coil-kt:coil-compose:2.5.0")
 }
-
-
-

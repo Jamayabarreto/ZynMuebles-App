@@ -2,11 +2,16 @@ package com.example.zynmuebles
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,12 +32,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zynmuebles.ui.theme.ZynMueblesTheme
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.example.zynmuebles.ForgotPasswordActivity
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +88,80 @@ fun LoginScreen(
 
     val context = LocalContext.current
     val auth = Firebase.auth
+    val db = Firebase.firestore
+
+    // Configurar Google Sign-In
+    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        .requestIdToken(context.getString(R.string.default_web_client_id))
+        .requestEmail()
+        .build()
+
+    val googleSignInClient = GoogleSignIn.getClient(context, gso)
+
+    // Launcher para Google Sign-In
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+
+            isLoading = true
+            auth.signInWithCredential(credential)
+                .addOnCompleteListener { authTask ->
+                    isLoading = false
+                    if (authTask.isSuccessful) {
+                        val user = auth.currentUser
+                        if (user != null) {
+                            // Verificar si el usuario ya existe en Firestore
+                            db.collection("usuarios").document(user.uid).get()
+                                .addOnSuccessListener { document ->
+                                    if (!document.exists()) {
+                                        // Es un usuario nuevo, crear su documento
+                                        val userData = hashMapOf(
+                                            "uid" to user.uid,
+                                            "nombre" to (user.displayName ?: "Usuario Google"),
+                                            "email" to (user.email ?: ""),
+                                            "rol" to "cliente",
+                                            "fechaCreacion" to System.currentTimeMillis()
+                                        )
+
+                                        db.collection("usuarios")
+                                            .document(user.uid)
+                                            .set(userData)
+                                            .addOnSuccessListener {
+                                                onLoginSuccess()
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(
+                                                    context,
+                                                    "Error al crear perfil: ${e.message}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                    } else {
+                                        // Usuario existente
+                                        onLoginSuccess()
+                                    }
+                                }
+                        } else {
+                            onLoginSuccess()
+                        }
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Error: ${authTask.exception?.localizedMessage}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+        } catch (e: ApiException) {
+            isLoading = false
+            Log.e("GoogleSignIn", "Error: ${e.message}")
+            Toast.makeText(context, "Error al iniciar sesión con Google", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // Colores personalizados
     val primaryColor = Color(0xFFD87057)
@@ -130,16 +212,8 @@ fun LoginScreen(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        // Aquí debes usar tu drawable del sillón
-                        // Icon(
-                        //     painter = painterResource(id = R.drawable.ic_chair),
-                        //     contentDescription = "Logo",
-                        //     tint = Color.White,
-                        //     modifier = Modifier.size(64.dp)
-                        // )
-                        // Por ahora usamos un emoji
                         Text(
-                            text = "🛋️",
+                            text = "🛋",
                             fontSize = 48.sp
                         )
                     }
@@ -273,6 +347,51 @@ fun LoginScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
+                }
+
+                // Separador "O"
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color.Gray)
+                    Text(
+                        text = "O",
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = Color.Gray,
+                        fontWeight = FontWeight.Bold
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color.Gray)
+                }
+
+                // Botón GOOGLE SIGN-IN
+                OutlinedButton(
+                    onClick = {
+                        launcher.launch(googleSignInClient.signInIntent)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_google),
+                        contentDescription = "Google Logo",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Continuar con Google",
+                        fontSize = 16.sp,
+                        color = Color.Black,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
 
                 // Link "¿olvidaste tu contraseña?"

@@ -3,6 +3,27 @@
     <string name="app_name">ZynMuebles</string>
     <string name="crear_cuenta">CREAR CUENTA</string>
 
+    <!-- Google Sign-In -->
+    <!-- Este valor se genera automáticamente cuando descargas google-services.json -->
+    <!-- Si no está, búscalo en google-services.json en "oauth_client" -> "client_id" donde "client_type": 3 -->
+    <string name="default_web_client_id">      "oauth_client": [
+        {
+          "client_id": "507828216247-1lu7hdmo33m1tgoprd60frahgp7rh83u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.zynmuebles",
+            "certificate_hash": "c7873cd65b538ea95dc96cd4ba942e05325d889d"
+          }
+        },
+        {
+          "client_id": "507828216247-0v9ubd1r81oh0eri49660nfimoekr9vk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ]</string>
+
+
+
+
     <!-- Pantalla de Login -->
     <string name="bienvenido">BIENVENIDO A ZINMUEBLES</string>
     <string name="ingresa_cuenta">INGRESA A TU CUENTA</string>
